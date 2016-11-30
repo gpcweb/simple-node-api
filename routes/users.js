@@ -8,6 +8,8 @@ var pgp     = require('pg-promise')(options);
 var connectionString = 'postgres://localhost:5432/users';
 var db               = pgp(connectionString);
 
+var fsp = require('fs-promise');
+
 //* Parse the user id
 router.param('id', function (req, res, next, id) {
   req.userId = parseInt(id);
@@ -31,13 +33,15 @@ router.get('/', function(req, res, next){
 
 /* GET a single user. */
 router.get('/:id', function(req, res, next) {
-  db.one('SELECT * FROM users WHERE id = $1', req.userId)
-    .then(function (data) {
-      res.status(200)
-        .json({
-          status: 'success',
-          data: data
-        });
+  var jsonFile;
+
+  fsp.readFile('./some_file.json', { encoding:'utf8' })
+    .then(function(data) {
+      jsonFile = JSON.parse(data);
+      return db.one('SELECT * FROM users WHERE id = $1', req.userId);
+    })
+    .then(function(data) {
+      res.status(200).json({ status: 'success', data: data, message: jsonFile["message"] });
     })
     .catch(function (err) {
       return next(err);
